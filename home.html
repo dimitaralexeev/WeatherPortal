@@ -102,15 +102,15 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-4">
-                                        <img class="thumbnail img-responsive" src="assets/img/icons/clear_sky.png">
+                                        <img class="thumbnail img-responsive" src="assets/img/icons/clear_sky.png" id="select-img-icon">
                                     </div>
                                     <div class="col-sm-8">
                                         <div>
-                                            <span class="label label-success"><span class="current-temp">27</span> ℃</span>
+                                            <span class="label label-success"><span class="current-temp" id="select-current-temp">27</span> ℃</span>
                                         </div>
                                         <label for="select-city">Избери град:</label>
                                         <select id="select-city" class="form-control">
-                                            <option value="0" selected disablet>Всички</option>
+                                            <option value="0" selected disabled>Всички</option>
                                             <option value="sofia">София</option>
                                             <option value="plovdiv">Пловдив</option>
                                             <option value="varna">Варна</option>
@@ -122,7 +122,7 @@
                                             <option value="sliven">Сливен</option>
                                             <option value="shumen">Шумен</option>
                                             <option value="pernik">Перник</option>
-                                            <option value="pazadzhik">Пазарджик</option>
+                                            <option value="pazardzhik">Пазарджик</option>
                                             <option value="yambol">Ямбол</option>
                                             <option value="haskovo">Хасково</option>
                                             <option value="blagoevgrad">Благоевград</option>
@@ -151,23 +151,7 @@
                             <h3 class="panel-title">Твоите отбелязвания</h3>
                         </div>
 
-                        <ul class="list-group" style="min-height:241px;" id="comments-list">
-
-                            <li class="list-group-item" style="display:none">
-                                <div class="row">
-                                    <div class="col-sm-2 col-xs-3">
-                                        <img src="assets/img/icons/clear_sky.png" class="thumbnail img-responsive">
-                                    </div>
-                                    <div class="col-sm-7 col-xs-6">
-                                        <span class="label label-success"><span class="current-temp">27</span> ℃</span>
-                                        <h4>Пловдив</h4>
-                                        <p>Времето беше супер. Разхождах се по главната. Купих си сладолед и пих вода от чешмичката на джумаята. </p>
-                                    </div>
-                                    <div class="col-sm-3 col-xs-3">
-                                        <button type="button" class="btn btn-danger pull-right remove-post"><span class="glyphicon glyphicon-remove"></span><span class="hidden-xs"> Изтрий</span></button>
-                                    </div>
-                                </div>
-                            </li>
+                        <ul class="list-group" style="min-height:241px;" id="comments-list">   
 
                         </ul>
                     </div>
@@ -201,19 +185,47 @@
         var apiKey = "04966255b9b2e742aa96df7c669a66ed";
         var city = "Plovdiv";
 
-        $('.publish').click(function(){
-            cityName = $('#select-city').val();
-
+        function doApiRequest(city, type){
             $.ajax({
             method: "GET",
             url: "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiKey + "&units=metric",
             dataTapy: "json"
             }).done(function(data){
-                var miniMe = $('#cloneMe').clone();
-                miniMe.find('h4').text(cityName);
+                switch(type){
+                    case "main":
+                        displayWeatherInformation(data);
+                    break;
+                    case "comment": 
+                        postComment(data);
+                    break;
+                    case "select":
+                        changeTempOnSelect(data);
+                    break;
+                }
+            }).fail(function(){
+                console.log("failed");
+            });
+        }
+
+        function changeTempOnSelect(data){
+            $('#select-current-temp').text(data.main.temp);
+            setWeatherIcon(data.weather[0].id.toString(), $('#select-img-icon'));
+        }
+
+        $('#select-city').change(function(){
+            doApiRequest($(this).val(), "select")
+        });
+
+        function postComment(data){
+            var miniMe = $('#cloneMe').clone();
+                miniMe.find('h4').text(cityNameValue);
                 miniMe.find('p').text($('#comment').val());
                 miniMe.attr('id', '');
                 miniMe.find('.current-temp').text(data.main.temp);
+                
+                miniMe.find('button').click(function(){
+                    miniMe.remove();
+                });
 
                 iconTochange = miniMe.find('img');
 
@@ -221,21 +233,16 @@
 
                 $('#comments-list').prepend(miniMe);
 
-                
-            });
-        });
+                $('#comment').val("");
 
-        $.ajax({
-            method: "GET",
-            url: "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiKey + "&units=metric",
-            dataTapy: "json"
-        }).done(function(response){
-            displayWeatherInformation(response);
-            console.log(response);
-        }).fail(function(){
-            console.log("Something went wrong!");
-        }).always(function(){
-            console.log("request done!");
+                miniMe.show();
+        }
+
+        $('.publish').click(function(){
+            cityName = $('#select-city').val();
+            cityNameValue = $('#select-city :selected').text();
+
+            doApiRequest(cityName, "comment");
         });
 
         function displayWeatherInformation(weatherData){
@@ -269,6 +276,8 @@
 
             iconPlace.show();
         }
+
+        doApiRequest("plovdiv", "main");
     })
 </script>
 </body>
